@@ -26,6 +26,9 @@ st.text("by Marko Gugleta")
 conn = connect_to_db("zip")
 
 def element_select_visualization(index:int=0):
+    """
+    Function to return the element for visualization selection.
+    """
     return st.selectbox(
         label="Select visualization",
         options=("Bar Chart", "Line Chart", "Heat Map", "Forecast Prediction"),
@@ -35,7 +38,7 @@ def element_select_visualization(index:int=0):
 
 def add_filters(index:int=0, type:str="Bar Chart"):
     """
-    Add filters for visualization selection
+    Add filters for visualization selection, gives back filters based on the type of visualization.
     """
     query = (
     """
@@ -88,6 +91,9 @@ def add_filters(index:int=0, type:str="Bar Chart"):
     return city, start_date, end_date, features
 
 def visualize_bar_chart(index:int=0):
+    """
+    Function to visualize the bar chart based on the selected filters.
+    """
     city, start_date, end_date, features = add_filters(index=index, type="Bar Chart")
     
     history = "AVG_TEMPERATURE_AIR_2M_F"
@@ -134,6 +140,9 @@ def visualize_bar_chart(index:int=0):
         st.bar_chart(df, stack=False, x_label="Time", y_label=features, use_container_width=True)
 
 def visualize_line_chart(index:int=0):
+    """
+    Function to visualize the line chart based on the selected filters.
+    """
     city, start_date, end_date, features = add_filters(index=index, type="Line Chart")
     sql_query = f"""
     SELECT
@@ -153,12 +162,14 @@ def visualize_line_chart(index:int=0):
     st.divider()
     if city or start_date or end_date:
         df = run_query(conn, sql_query, params=[city, start_date, end_date])
-        print(df)
         st.header("Trend over time")
         if features:
             st.line_chart(df, x="DATE_VALID_STD", y=[f.upper() for f in features], x_label="Time", y_label="Values", use_container_width=True)
 
 def visualize_heat_map(index:int=0):
+    """
+    Function to visualize the heat map based on the selected filters.
+    """
     city, start_date, end_date, features = add_filters(index=index, type="Heat Map")
     st.divider()
     sql_query = f"""
@@ -181,14 +192,12 @@ def visualize_heat_map(index:int=0):
         h.CITY, h.DATE_VALID_STD;
     """
     st.header("Difference in values")
-    print(sql_query)
     if city or start_date or end_date:
         if len(city) <= 0:
             return
         df = run_query(conn, sql_query, params=[start_date, end_date])
 
         df['OBSERVATION_DATE'] = pd.to_datetime(df['OBSERVATION_DATE'])
-        print(df['OBSERVATION_DATE'])
         source = pd.DataFrame({
             'x': df['OBSERVATION_DATE'],
             'y': df['CITY_NAME'],
@@ -203,10 +212,13 @@ def visualize_heat_map(index:int=0):
         st.altair_chart(ch, use_container_width=True)
 
 def visualize_forecast_prediction(index:int=0):
+    """
+    Function to visualize prediction of the selected features based on the selected filters.
+    """
     city, _, _, feature = add_filters(index=index, type="Forecast Prediction")
     train_button = st.button("Train Model", key="train_model"+str(index), help="Train the model for forecast prediction")
     
-    st.header("Forecast Prediction for the next 14 days for selected feature")
+    st.header("Forecast Prediction for the next 14 days")
     
     if train_button:
         sql_query = f"""
@@ -282,5 +294,5 @@ st.divider()
 with st.expander("See additional information about the Data and the project", expanded=False):
     st.write('''
         You can have one or more visualizations at the same time, up to three. It is possible to select the type of visualization, the city name, the date range and the features to be visualized. The data is taken from a Snowflake database and is updated daily. The data is stored in two tables: history_day and climatology_day. The history_day table contains the actual weather data, while the climatology_day table contains the average weather data for each day of the year.
-        The data is stored in Fahrenheit, inches and miles per hour. The data spans from 2023-05-21 to today.
+        The data is stored in Fahrenheit, inches, miles per hour and percentages. The data spans from 2023-05-21 to today. There are around 543,000 rows in the history_day table and around 272,000 rows in the climatology_day table.
     ''')
