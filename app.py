@@ -4,22 +4,25 @@ import altair as alt
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 
+# Setting the number of visualizations session state variable to dictate number of visualizations shown
 if "n_visualizations" not in st.session_state:
     st.session_state.n_visualizations = 1
-
 if st.session_state.n_visualizations > 1:
     st.set_page_config(layout="wide")
 else:
     st.set_page_config(layout="centered")
 
+# Connecting to Snowflake database cached as a resource to avoid multiple connections
 @st.cache_resource
 def connect_to_db(name:str="zip"):
     return st.connection(name, type="snowflake").session()
 
+# Function to run SQL queries and return results as pandas DataFrame cached
 @st.cache_data
 def run_query(_conn, query:str, params:list=None):
     return _conn.sql(query, params=params).to_pandas()
 
+# Function to display the title and description of the app
 st.title("Data Analysis for Global Weather and Climate data")
 st.text("by Marko Gugleta")
 
@@ -257,6 +260,9 @@ def visualize_forecast_prediction(index:int=0):
         st.line_chart(forecast_values, x="DATE_VALID_STD", y=["Forecast", feature.upper()], use_container_width=True)
 
 def visualize(args:tuple=None):
+    """
+    Function to select the visualization based on the arguments.
+    """
     if args is None:
         print("ERROR: Wrong option selected.")
         st.error('ERROR: Wrong option selected.', icon="🚨")
@@ -273,6 +279,7 @@ def visualize(args:tuple=None):
         print("ERROR: Wrong option selected.")
         st.error('ERROR: Wrong option selected.', icon="🚨")
 
+# Buttons to add or remove visualizations
 button_add = st.button("Add Visualization", key="add_visualization", help="Add a new visualization")
 button_remove = st.button("Remove Visualization", key="remove_visualization", help="Remove a visualization")
 if button_add:
@@ -284,12 +291,14 @@ if button_remove:
         st.session_state.n_visualizations -= 1
         st.rerun()
 
+# Sections for visualizations
 columns = st.columns(st.session_state.n_visualizations)
-
 for i in range(st.session_state.n_visualizations):
     with columns[i]:
         visualize(element_select_visualization(index=i))
 
+
+# Additional information
 st.divider()
 with st.expander("See additional information about the Data and the project", expanded=False):
     st.write('''
